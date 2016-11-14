@@ -1,4 +1,14 @@
 clc;
+a = -5.09346;
+b = abs(a)
+
+c = 0.09346;
+d = abs(c)
+
+a = zeros(5,2);
+
+a = randi([2, 1]);
+disp(a);
 
 for i = 5:-1:1
    disp(i); 

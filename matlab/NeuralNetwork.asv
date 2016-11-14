@@ -2,6 +2,7 @@
 classdef NeuralNetwork
     %% Properties
     properties (GetAccess = 'public', SetAccess = 'private')
+        p_topology;
         p_layers;
         p_outputValue;
         p_error;
@@ -22,6 +23,7 @@ classdef NeuralNetwork
         % prmLearningRate: Learning rate from 0 to 1.
         % prmMomentum: Delta weight multiplier from 0 to 1.
         function result = NeuralNetwork(prmTopology, prmLearningRate, prmMomentum)
+            result.p_topology = prmTopology;
             result.p_outputValue = 0;
             result.p_error = 0;
             result.p_learningRate = prmLearningRate;
@@ -71,25 +73,55 @@ classdef NeuralNetwork
             end
         end
         
-        %% TrainNeuralNetwork
-        % Trains neural network for the number of iterations provided
-        function result = TrainNeuralNetwork(result, prmMaxIterations)
+        %% TrainNeuralNetwork_Backpropagation
+        % Trains neural network with backpropagation for the number of iterations provided
+        function result = TrainNeuralNetwork_Backpropagation(result, prmInputValues, prmExpectedValue, prmMaxIterations)
             for i = 1:prmMaxIterations
                 % Feedforward
-                result = result.Feedforward(inputValues);
-                outputValue = nn.p_outputValue;
+                result = result.Feedforward(prmInputValues);
+                outputValue = result.p_outputValue;
                 % Backpropagation
-                nn = nn.Backpropagation(0.5);
-                errorValue = nn.p_error;
+                result = result.Backpropagation(prmExpectedValue);
+                errorValue = result.p_error;
                 
-                if(errorValue < bestError)
-                    bestSolution = outputValue;
-                    bestIteration = i;
-                    bestError = errorValue;
+                % Calculate best solution based on error
+                if(errorValue < result.p_bestError)
+                    result.p_bestSolution = outputValue;
+                    result.p_bestIteration = i;
+                    result.p_bestError = errorValue;
                 end
                 
-                fprintf('iteration: %d | output: %d | error %d \n', i, outputValue, errorValue);
+                fprintf('Iteration: %d | output: %d | error %d \n', i, outputValue, errorValue);
             end
+            
+            disp(result.p_topology);
+            fprintf('BEST: iteration: %d | output: %d | error %d \n', result.p_bestIteration, result.p_bestSolution, result.p_bestError);
+        end
+        
+        %% SetError
+        function result = SetError(result, prmValue)
+            
+        end
+        
+        %% TrainNeuralNetwork_GeneticAlgorithm
+        % Trains neural network with a genetic algorithm for the number of iterations provided
+        function result = TrainNeuralNetwork_GeneticAlgorithm(result, prmInputValues, prmExpectedValue)
+            % Feedforward
+            result = result.Feedforward(prmInputValues);
+            outputValue = result.p_outputValue;
+            
+            
+            % Calculate best solution based on error
+            if(errorValue < result.p_bestError)
+                result.p_bestSolution = outputValue;
+                result.p_bestIteration = i;
+                result.p_bestError = errorValue;
+            end
+            
+            fprintf('Iteration: %d | output: %d | error %d \n', i, outputValue, errorValue);
+            
+            disp(result.p_topology);
+            fprintf('BEST: iteration: %d | output: %d | error %d \n', result.p_bestIteration, result.p_bestSolution, result.p_bestError);
         end
         
         %% Feedforward
@@ -121,7 +153,7 @@ classdef NeuralNetwork
                 
                 % Last layer has no bias
                 if(i == length(result.p_layers))
-                   numNeurons = numNeurons + 1; % Bias was removed before, add it
+                    numNeurons = numNeurons + 1; % Bias was removed before, add it
                 end
                 
                 % Get output of each neuron of the layer
@@ -142,14 +174,14 @@ classdef NeuralNetwork
         % Propagates the error backwards in the neural network to adjust
         % weights.
         % Uses root mean square of the error.
-        function result = Backpropagation(result, prmTargetValue)
+        function result = Backpropagation(result, prmExpectedValue)
             error = 0.0;
             
             % Calculate error from last layer using root mean square
             lastLayer = result.p_layers(length(result.p_layers));
             for i = 1:length(lastLayer.p_neurons)
                 neuron = lastLayer.p_neurons(i);
-                deltaError = prmTargetValue - neuron.p_outputValue;
+                deltaError = prmExpectedValue - neuron.p_outputValue;
                 error = error + (deltaError * deltaError);
             end
             error = error/length(lastLayer.p_neurons);
@@ -158,7 +190,7 @@ classdef NeuralNetwork
             % Calculate gradient in last layer
             for i = 1:length(lastLayer.p_neurons)
                 neuron = lastLayer.p_neurons(i);
-                neuron = neuron.CalculateOutputGradient(prmTargetValue);
+                neuron = neuron.CalculateOutputGradient(prmExpectedValue);
                 lastLayer = lastLayer.UpdateNeuron(neuron, i); % Updates neuron in layer with new value
                 result.p_layers(length(result.p_layers)) = lastLayer;
             end

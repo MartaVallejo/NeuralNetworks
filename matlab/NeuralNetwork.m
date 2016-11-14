@@ -73,9 +73,15 @@ classdef NeuralNetwork
             end
         end
         
-        %% TrainNeuralNetwork
-        % Trains neural network for the number of iterations provided
-        function result = TrainNeuralNetwork(result, prmInputValues, prmExpectedValue, prmMaxIterations)
+        %% UpdateLayer
+        % Updates a layer in the matrix of layers at the specified index
+        function result = UpdateLayer(result, prmLayer, prmIndex)
+            result.p_layers(prmIndex) = prmLayer;
+        end
+        
+        %% TrainNeuralNetwork_Backpropagation
+        % Trains neural network with backpropagation for the number of iterations provided
+        function result = TrainNeuralNetwork_Backpropagation(result, prmInputValues, prmExpectedValue, prmMaxIterations)
             for i = 1:prmMaxIterations
                 % Feedforward
                 result = result.Feedforward(prmInputValues);
@@ -96,6 +102,33 @@ classdef NeuralNetwork
             
             disp(result.p_topology);
             fprintf('BEST: iteration: %d | output: %d | error %d \n', result.p_bestIteration, result.p_bestSolution, result.p_bestError);
+        end
+        
+        %% SetError
+        function result = SetError(result, prmValue)
+            result.p_error = prmValue;
+        end
+        
+        %% TrainNeuralNetwork_GeneticAlgorithm
+        % Trains neural network with a genetic algorithm for the number of iterations provided
+        function result = TrainNeuralNetwork_GeneticAlgorithm(result, prmInputValues, prmExpectedValue)
+            % Feedforward
+            result = result.Feedforward(prmInputValues);
+            outputValue = result.p_outputValue;
+            result.p_error = abs(prmExpectedValue - outputValue); % absolute error
+            errorValue = result.p_error;
+            
+            % Calculate best solution based on error
+            if(errorValue < result.p_bestError)
+                result.p_bestSolution = outputValue;
+                %result.p_bestIteration = i;
+                result.p_bestError = errorValue;
+            end
+            
+%             fprintf('Iteration: %d | output: %d | error %d \n', i, outputValue, errorValue);
+%             
+%             disp(result.p_topology);
+%             fprintf('BEST: iteration: %d | output: %d | error %d \n', result.p_bestIteration, result.p_bestSolution, result.p_bestError);
         end
         
         %% Feedforward
@@ -127,7 +160,7 @@ classdef NeuralNetwork
                 
                 % Last layer has no bias
                 if(i == length(result.p_layers))
-                   numNeurons = numNeurons + 1; % Bias was removed before, add it
+                    numNeurons = numNeurons + 1; % Bias was removed before, add it
                 end
                 
                 % Get output of each neuron of the layer
@@ -148,14 +181,14 @@ classdef NeuralNetwork
         % Propagates the error backwards in the neural network to adjust
         % weights.
         % Uses root mean square of the error.
-        function result = Backpropagation(result, prmTargetValue)
+        function result = Backpropagation(result, prmExpectedValue)
             error = 0.0;
             
             % Calculate error from last layer using root mean square
             lastLayer = result.p_layers(length(result.p_layers));
             for i = 1:length(lastLayer.p_neurons)
                 neuron = lastLayer.p_neurons(i);
-                deltaError = prmTargetValue - neuron.p_outputValue;
+                deltaError = prmExpectedValue - neuron.p_outputValue;
                 error = error + (deltaError * deltaError);
             end
             error = error/length(lastLayer.p_neurons);
@@ -164,7 +197,7 @@ classdef NeuralNetwork
             % Calculate gradient in last layer
             for i = 1:length(lastLayer.p_neurons)
                 neuron = lastLayer.p_neurons(i);
-                neuron = neuron.CalculateOutputGradient(prmTargetValue);
+                neuron = neuron.CalculateOutputGradient(prmExpectedValue);
                 lastLayer = lastLayer.UpdateNeuron(neuron, i); % Updates neuron in layer with new value
                 result.p_layers(length(result.p_layers)) = lastLayer;
             end
